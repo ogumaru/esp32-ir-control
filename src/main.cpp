@@ -1,31 +1,42 @@
 #include <Arduino.h>
 #include <IRremote.h>
 #include <stdint.h>
-
 #include <WiFi.h>
 
+#include "driver/rmt.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/rmt.h"
 #include "http_parser.h"
 
 #include "credentials.hpp"
 
-
 #define DECODE_NEC
 #define DECODE_DISTANCE
-const uint16_t IR_ADDRESS = 0x6d82;
-const uint8_t IR_REPEATS = 4;
 
-const uint16_t MAX_BODY_LEN = 1024;
-
+// Pin Assignment
 const uint8_t IR_RECEIVE_PIN = 15;
 const uint8_t IR_SEND_PIN = 4;
 const uint8_t LOAD_RESISTANCE = 33;
+
+//  IR
+const uint16_t IR_ADDRESS = 0x6d82;
+const uint8_t IR_REPEATS = 4;
+
+// HTTP Server
+WiFiServer server(80);
+const uint16_t MAX_BODY_LEN = 1024;
+char body[MAX_BODY_LEN];
+size_t bodylen = 0;
+char url[128];
+
+// Multi Tasking
+bool is_request_end = false;
+bool is_ir_locked = false;
+
+//  Serial Port
 const uint16_t SERIALPORT_BITRATE = 9600;
 
 void process(void);
-WiFiServer server(80);
 
 bool connect_wifi(void) {
   Serial.print("Connect to");
@@ -132,7 +143,6 @@ void send_409(WiFiClient &client) {
   client.print("Content-Length: 0\r\n\r\n");
 }
 
-char url[128];
 int on_url(http_parser *http_parser, const char *buf, size_t len) {
   if (sizeof(url) <= strlen(url) + len) {
     Serial.println("URL too long");
@@ -142,9 +152,6 @@ int on_url(http_parser *http_parser, const char *buf, size_t len) {
 
   return EXIT_SUCCESS;
 }
-
-char body[MAX_BODY_LEN];
-size_t bodylen = 0;
 
 int on_body(http_parser *http_parser, const char *buf, size_t len) {
   if (sizeof(body) < bodylen + len) {
@@ -156,8 +163,6 @@ int on_body(http_parser *http_parser, const char *buf, size_t len) {
   return EXIT_SUCCESS;
 }
 
-bool is_request_end = false;
-
 int on_message_complete(http_parser *http_parser) {
   is_request_end = true;
   return EXIT_SUCCESS;
@@ -167,8 +172,6 @@ int on_chunk_complete(http_parser *http_parser) {
   is_request_end = true;
   return EXIT_SUCCESS;
 }
-
-bool is_ir_locked = false;
 
 void task_ch1_toggle_light(void *) {
   Serial.println("send...");
@@ -213,7 +216,6 @@ void task_ir_receive(void *) {
   Serial.println("recv done");
   vTaskDelete(NULL);
 }
-
 
 void process(void) {
   char buf[1024];
