@@ -1,14 +1,13 @@
 #include <Arduino.h>
 #include <IRremote.h>
-#include <stdint.h>
 #include <WiFi.h>
+#include <stdint.h>
 
+#include "credentials.hpp"
 #include "driver/rmt.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "http_parser.h"
-
-#include "credentials.hpp"
 
 #define DECODE_NEC
 #define DECODE_DISTANCE
@@ -98,7 +97,7 @@ void receive_ir_data(void) {
 }
 
 void prevent_sleep(void) {
-  static uint8_t time = 0; 
+  static uint8_t time = 0;
   const uint8_t interval = 15;
   bool voltage = !(time > 0);
   delay(1000);
@@ -175,7 +174,7 @@ int on_chunk_complete(http_parser *http_parser) {
 
 void task_ch1_toggle_light(void *) {
   Serial.println("send...");
-  emit_ir_ch1_toggle_three_state(); 
+  emit_ir_ch1_toggle_three_state();
   delay((RECORD_GAP_MICROS / 1000) + 5);
   is_ir_locked = false;
   Serial.println("send done");
@@ -184,7 +183,7 @@ void task_ch1_toggle_light(void *) {
 
 void task_ch1_all_lights_up(void *) {
   Serial.println("send...");
-  emit_ir_ch1_all_lights_up(); 
+  emit_ir_ch1_all_lights_up();
   delay((RECORD_GAP_MICROS / 1000) + 5);
   is_ir_locked = false;
   Serial.println("send done");
@@ -193,7 +192,7 @@ void task_ch1_all_lights_up(void *) {
 
 void task_ch1_night_light(void *) {
   Serial.println("send...");
-  emit_ir_ch1_night_light(); 
+  emit_ir_ch1_night_light();
   delay((RECORD_GAP_MICROS / 1000) + 5);
   is_ir_locked = false;
   Serial.println("send done");
@@ -202,7 +201,7 @@ void task_ch1_night_light(void *) {
 
 void task_ch1_off(void *) {
   Serial.println("send...");
-  emit_ir_ch1_toggle_on_off(); 
+  emit_ir_ch1_toggle_on_off();
   delay((RECORD_GAP_MICROS / 1000) + 5);
   is_ir_locked = false;
   Serial.println("send done");
@@ -253,7 +252,7 @@ void process(void) {
   if (!is_request_end || is_error) {
     Serial.println("400");
     send_400(client);
-  } else if(is_ir_locked) {
+  } else if (is_ir_locked) {
     send_409(client);
     Serial.println("409");
   } else if (strcmp(url, "/ch1/toggle") == 0) {
